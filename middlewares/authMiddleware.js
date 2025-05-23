@@ -1,23 +1,22 @@
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  if (!authHeader) {
-    return res.status(403).json({ message: 'Token no proporcionado' });
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Token no proporcionado' });
   }
 
-  const token = authHeader.split(' ')[1]; // Separar "Bearer <token>"
+  const token = authHeader.split(' ')[1];
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      console.error('Token inválido:', err.message);
-      return res.status(403).json({ message: 'Token inválido o expirado' });
-    }
-
-    console.log('Token decodificado:', decoded); // ✅ Verifica que incluya `role`
-    req.user = decoded; // aseguramos que contenga id, role, etc.
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Token decodificado:', decoded); // ✅ para depurar
+    req.user = decoded; // asegúrate de que contiene { id, email, role }
     next();
-  });
+  } catch (error) {
+    console.error('Token inválido:', error.message);
+    return res.status(403).json({ message: 'Token inválido o expirado' });
+  }
 };
 
 const verifyAdmin = (req, res, next) => {
